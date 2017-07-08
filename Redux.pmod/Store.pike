@@ -101,7 +101,7 @@ public Action dispatch(Action action)
   array(Subscriber) listeners = subscribers = next_subscribers;
 
   foreach (listeners, Subscriber s) {
-    s(this);
+    s(this, action);
   }
 
   return action;

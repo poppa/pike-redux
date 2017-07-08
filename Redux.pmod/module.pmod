@@ -83,31 +83,44 @@ class ActionType {
 //! @endcode
 class Action(string type){}
 
-
 //! Typedef of a state
 typedef object|string(8bit)|mapping|array|int|float|multiset State;
 
 //! Typedef for a reducer function
 typedef function(State, Action : State) Reducer;
 
+//! Typedef for the mapping of @[Reducer]s passed as argument to
+//! @[combine_reducers()]
+typedef mapping(string:Reducer) ReducerMap;
+
 //! Typedef of an enhancer function
 typedef function(typeof(create_store):function(Reducer,State:.Store)) Enhancer;
 
-typedef function(.Store|void : void) Subscriber;
+//! Typedef for a subscriber function
+typedef function(.Store|void, Action|void : void) Subscriber;
 
-typedef function(mixed... : mixed) Composition;
+//! Typedef for a function returned from @[compose()]
+typedef function(mixed : function) Composition;
 
+//! Typedef for an action function returned from @[bind_action_creator] or
+//! @[bind_action_creators]
 typedef function(mixed... : Action) ActionFunction;
-typedef function|mapping|object ActionCreator;
-// typedef function|mapping ActionFunction;
 
-typedef function(mixed... : ActionFunction) ActionCreatorFunction;
+//! Typedef for the function returned from @[bind_action_creator]
+typedef function(mixed... : ActionFunction) ActionCreator;
 
+//! Typedef for the mapping of function passed as argument to
+//! @[bind_action_creators]
 typedef object ActionCreatorObject;
 
 
-.Store create_store(Reducer       reducer,
-                    void|State    init_state,
+//! Creates a new @[.Store] instance.
+//!
+//! @param reducer
+//! @param init_state
+//! @param enhancer
+.Store create_store(Reducer reducer,
+                    State init_state,
                     void|Enhancer enhancer)
 {
   if (enhancer) {
@@ -120,8 +133,14 @@ typedef object ActionCreatorObject;
 }
 
 
-
-ActionFunction bind_action_creator(ActionCreatorFunction func,
+//! Bind an action creator function to @[.Store->dispatch()].
+//!
+//! @seealso
+//!  @[bind_action_creators()]
+//!
+//! @param func
+//! @param dispatch
+ActionFunction bind_action_creator(ActionCreator func,
                                    function dispatch)
 {
   return lambda (mixed ... args) {
@@ -129,6 +148,13 @@ ActionFunction bind_action_creator(ActionCreatorFunction func,
   };
 }
 
+//! Bind multiple actions creators to a single mapping.
+//!
+//! @seealso
+//!  @[bind_action_creator()]
+//!
+//! @param action_creator
+//! @param dispatch
 mapping(string:ActionFunction)
 bind_action_creators(ActionCreatorObject action_creator,
                      function dispatch)
@@ -145,7 +171,34 @@ bind_action_creators(ActionCreatorObject action_creator,
   return bound_creators;
 }
 
+//! Combine reducers
+//!
+//! @param reducers
+Reducer combine_reducers(ReducerMap reducers)
+{
+  ReducerMap final_reducers = reducers + ([]);
 
+  return lambda (State state, Action action) {
+    bool has_changed = false;
+    state = state || ([]);
+    mapping next_state = ([]);
+
+    foreach (final_reducers; string key; Reducer reducer) {
+      mixed previous_state_for_key = state[key];
+      mixed next_state_for_key = reducer(previous_state_for_key, action);
+
+      next_state[key] = next_state_for_key;
+      has_changed = has_changed || (next_state_for_key != previous_state_for_key);
+    }
+
+    return has_changed ? next_state : state;
+  };
+}
+
+//! Compose an array of functions to a new function which when called will call
+//! the @[args] function is sequence right to left
+//!
+//! @param args
 Composition compose(function ... args)
 {
   if (!sizeof(args)) {

@@ -41,9 +41,10 @@ int main(int argc, array(string) argv)
   store = Redux.create_store(reducer, ([]));
 
   // Subscribe for changes
-  Redux.Subscriber listener = store->subscribe(lambda() {
-    werror("State was changed: %O\n", store->state);
-  });
+  Redux.Subscriber listener =
+    store->subscribe(lambda(Redux.Store store, Redux.Action last_action) {
+      werror("State was changed: %O (%O)\n", store->state, last_action);
+    });
 
   // This will only be called once since it removes it self after the first
   // notification.

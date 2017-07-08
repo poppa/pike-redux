@@ -4,7 +4,7 @@ A simple _beginning of an_ implementation of [Redux](https://github.com/reactjs/
 TODO
 ====
 
-  * combine_reducers
+  * error handling in combine_reducers
   * apply_middleware
   * ...and some stuff
   * documentation 🤐
