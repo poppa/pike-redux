@@ -111,7 +111,7 @@ typedef function(mixed... : ActionFunction) ActionCreator;
 
 //! Typedef for the mapping of function passed as argument to
 //! @[bind_action_creators]
-typedef object ActionCreatorObject;
+typedef object|program ActionCreatorObject;
 
 
 //! Creates a new @[.Store] instance.
@@ -162,9 +162,19 @@ bind_action_creators(ActionCreatorObject action_creator,
   array(mixed) keys = indices(action_creator);
   mapping(string:ActionFunction) bound_creators = ([]);
 
-  foreach (indices(action_creator), string name) {
-    if (functionp(action_creator[name])) {
-      bound_creators[name] = bind_action_creator(action_creator[name], dispatch);
+  object creator_instance;
+
+  if (programp(action_creator)) {
+    creator_instance = action_creator();
+  }
+  else {
+    creator_instance = action_creator;
+  }
+
+  foreach (indices(creator_instance), string name) {
+    if (functionp(creator_instance[name])) {
+      bound_creators[name] =
+        bind_action_creator(creator_instance[name], dispatch);
     }
   }
 
