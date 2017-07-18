@@ -1,68 +1,63 @@
-//! Global storage
-Redux.Store store;
 
-//! Implements @[Redux.Action]
-private class action(string type, int payload) {
+class action(string type, int payload) {
   string _sprintf(int t) {
-    return sprintf("(%O => %O)", type, payload);
+    return sprintf("%O(%O => %O)", object_program(this), type, payload);
   }
 }
 
-//! The reducer function will be called everytime an action is dispatched
-//! on the @[store]. If the state is not of a primitive type a new copy
-//! of the state must be returned form the reducer.
+class my_actions {
+  constant INC = "inc";
+  constant DEC = "dec";
+
+  Redux.Action inc(int payload) {
+    return action(INC, payload);
+  }
+
+  Redux.Action dec(int payload) {
+    return action(DEC, payload);
+  }
+}
+
+Redux.Store store;
+mapping actions;
+
 Redux.State reducer(Redux.State state, Redux.Action action)
 {
-  Redux.State new_state;
-
-  // This is also a way of creating the default state
   if (action->type == Redux.ActionType.INIT) {
-    return state || ([]);
+    return Redux.State(([ "val" : 0 ]));
   }
 
-  if (action->type == "inc") {
-    // Given that we use a mapping as State. In this particular case we
-    // could have used an int as State, but this is more to show the
-    // purpose of not mutating a State if it is of a reference type.
-    new_state = state + ([ "value" : state->value + action->payload ]);
-  }
-  else if (action->type == "dec") {
-    new_state = state + ([ "value" : state->value - action->payload ]);
+  switch (action->type)
+  {
+    case "inc":
+      state = state + ([ "val" : state->val + action->payload ]);
+      break;
+
+    case "dec":
+      state = state + ([ "val" : state->val - action->payload ]);
+      break;
   }
 
-  //! If no new state was created, return the original one. If we never
-  //! touched it it couldn't have been mutated.
-  return new_state || state;
+  return state;
 }
+
 
 int main(int argc, array(string) argv)
 {
-  // Initialize a new store with an empty mapping as default State.
-  store = Redux.create_store(reducer, ([]));
+  store = Redux.create_store(reducer);
+  actions = Redux.bind_action_creators(my_actions, store->dispatch);
 
-  // Subscribe for changes
-  Redux.Subscriber listener =
-    store->subscribe(lambda(Redux.Store store, Redux.Action last_action) {
-      werror("State was changed: %O (%O)\n", store->state, last_action);
+  function unsubscribe =
+    store->subscribe(lambda (Redux.Action a) {
+      werror(">>> Subscriber called: %O\n", a);
     });
 
-  // This will only be called once since it removes it self after the first
-  // notification.
-  store->subscribe(lambda() {
-    werror("I say this once: State was changed: %O\n", store->state);
-    store->unsubscribe(this_function);
-  });
+  actions->inc(12);
+  actions->dec(7);
+  unsubscribe();
+  actions->inc(3);
 
-  // Now let's dispatch some actions.
-  store->dispatch(action("inc",   4));
-  store->dispatch(action("inc",   8));
-  store->dispatch(action("dec",  10));
-
-  // The reducer function above doesn't take actions of type "skip"
-  // into consideration, but the listener will get notified nonetheless.
-  store->dispatch(action("skip", 104));
-
-  write("The result of the state is: %d\n", store->state->value);
+  werror("Result: %O\n", store->get_state()["val"]);
 
   return 0;
 }

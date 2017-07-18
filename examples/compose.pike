@@ -2,7 +2,7 @@
 
 int main(int argc, array(string) argv)
 {
-  Redux.Composition reverse_to_upper_x3 =
+  function(string:string) reverse_to_upper_x3 =
     Redux.compose(
       lambda (string x) {
         return x*3;
