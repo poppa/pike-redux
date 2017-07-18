@@ -81,7 +81,11 @@ class ActionType {
 //! @code
 //! class MyAction(string type, mixed payload){}
 //! @endcode
-class Action(string type){}
+class Action(string type) {
+  string _sprintf(int t) {
+    return sprintf("%O(%O)", object_program(this), type);
+  }
+}
 
 //! Typedef of a state
 typedef object|string(8bit)|mapping|array|int|float|multiset State;
@@ -148,6 +152,7 @@ ActionFunction bind_action_creator(ActionCreator func,
   };
 }
 
+
 //! Bind multiple actions creators to a single mapping.
 //!
 //! @seealso
@@ -181,6 +186,7 @@ bind_action_creators(ActionCreatorObject action_creator,
   return bound_creators;
 }
 
+
 //! Combine reducers
 //!
 //! @param reducers
@@ -204,6 +210,40 @@ Reducer combine_reducers(ReducerMap reducers)
     return has_changed ? next_state : state;
   };
 }
+
+typedef mapping(string:function) MiddleWareApi;
+
+mixed apply_middleware(function ... middlewares)
+{
+  return lambda (typeof(create_store) create_store_fun) {
+    return lambda (Reducer reducer, State init_state, void|Enhancer enhancer) {
+      .Store store = create_store_fun(reducer, init_state, enhancer);
+
+      function dispatch = store->dispatch;
+      function statefun = store->get_state;
+      array chain = ({});
+
+      MiddleWareApi api = ([
+        "state": statefun,
+        "dispatch": lambda (Action action) {
+          return dispatch(action);
+        }
+      ]);
+
+      chain = map(middlewares, lambda (function middleware) {
+        return middleware(api);
+      });
+
+      dispatch = compose(@chain)(store->dispatch);
+
+      .Store new_store = store->clone();
+      new_store->dispatch = dispatch;
+
+      return new_store;
+    };
+  };
+}
+
 
 //! Compose an array of functions to a new function which when called will call
 //! the @[args] function is sequence right to left

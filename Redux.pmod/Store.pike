@@ -11,12 +11,23 @@ private bool is_dispatching;
 
 public State `state() { return current_state; }
 
+public function(Action : Action) dispatch;
+
+//! Same as @[state] but more readable when used as function pointer in APIs.
+//! Consider internal, use @[Redux.Store->state] instead.
+public State get_state()
+{
+  return current_state;
+}
 
 protected void create(Reducer reducer, State state)
 {
   this::reducer = reducer;
   this::current_state = state;
   next_subscribers = subscribers = ({});
+
+  dispatch = low_dispatch;
+
   dispatch(Action(ActionType.INIT));
 }
 
@@ -54,9 +65,22 @@ public void unsubscribe(Subscriber s)
   next_subscribers -= ({ s });
 }
 
+//! @ignore
+//! This is internal methods
+array(Subscriber) __get_subscribers() {
+  return next_subscribers + ({});
+}
+//! @endignore
 
-public Action dispatch(Action action)
+public Action low_dispatch(Action action)
 {
+  // if (__new_dispatcher) {
+  //   // werror("HAVE NEW DISPATCHER: %O\n", new_dispatcher);
+  //   // Action new_action = new_dispatcher(action);
+  //   // new_dispatcher = 0;
+  //   return __new_dispatcher(action);
+  // }
+
   if (!action) {
     error("Argument action can not be null!\n");
   }
@@ -105,6 +129,18 @@ public Action dispatch(Action action)
   }
 
   return action;
+}
+
+public this_program clone()
+{
+  Store s = this_program(reducer, current_state);
+  s->dispatch = dispatch;
+
+  foreach (next_subscribers, Subscriber ss) {
+    s->subscribe(ss);
+  }
+
+  return s;
 }
 
 protected void destroy()
