@@ -144,12 +144,12 @@ Store create_store(Reducer reducer, void|.State preloaded_state,
 
   dispatch(Action(ActionType.INIT));
 
-  return ([
+  return set_weak_flag(([
     "dispatch": dispatch,
     "subscribe": subscribe,
     "get_state": get_state,
     "replace_reducer": replace_reducer
-  ]);
+  ]), Pike.WEAK_VALUES);
 }
 
 //! Bind an action creator.
@@ -311,34 +311,10 @@ function apply_middleware(function ... middlewares)
         return middleware(middlewar_api);
       });
 
-      dispatch = compose(@chain)(store->dispatch);
+      dispatch = Function.composite(@chain)(store->dispatch);
       return store + ([ "dispatch" : dispatch ]);
     };
   };
-}
-
-
-//! Compose an array of functions to a new function which when called will call
-//! the @[args] function in sequence right to left
-//!
-//! @param args
-function compose(function ... args)
-{
-  if (!sizeof(args)) {
-    return lambda (mixed arg) {
-      return arg;
-    };
-  }
-
-  if (sizeof(args) == 1) {
-    return args[0];
-  }
-
-  return Array.reduce(lambda (function a, function b) {
-    return lambda (mixed ... args) {
-      return a(b(@args));
-    };
-  }, args);
 }
 
 /*

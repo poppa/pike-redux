@@ -28,10 +28,12 @@ protected BuiltinType data;
 
 #define IS_SAME_TYPE(A,B) (_typeof((A)) == _typeof((B)))
 
+
 protected void create(BuiltinType data)
 {
   this::data = data;
 }
+
 
 public mixed get_data()
 {
@@ -90,7 +92,7 @@ public this_program `-(StateType other)
 public mixed `[](mixed key)
 {
   if (arrayp(data)) {
-    if (intp(key)) {
+    if (!intp(key)) {
       error("Can not index array on %O.\n", _typeof(key));
     }
 
@@ -105,6 +107,9 @@ public mixed `[](mixed key)
 }
 
 
+//! @ignore
+//! NOTE! This method should not be used since it will mutate the data, but
+//! it's needed for the combine_reducers to work
 public mixed `[]=(mixed key, mixed value)
 {
   if (arrayp(data)) {
@@ -121,6 +126,7 @@ public mixed `[]=(mixed key, mixed value)
 
   return data = value;
 }
+//! @endignore
 
 public bool `==(StateType other)
 {

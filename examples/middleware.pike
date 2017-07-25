@@ -25,7 +25,6 @@ class my_actions {
       }, 3);
     };
   }
-
 }
 
 Redux.State reducer(Redux.State state, Redux.Action action)
